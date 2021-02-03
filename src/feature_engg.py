@@ -11,6 +11,7 @@ from keras.preprocessing.sequence import pad_sequences
 import pickle
 
 from matplotlib import pyplot as plt
+import numpy as np
 
 # create abc class here
 class MustHaveForDP:
@@ -82,6 +83,13 @@ class DataPreprocessing(MustHaveForDP):
     # this function will help in creating fixed length sequences
     # we will apply padding
     def get_fixed_length_sequences(self, encoder_input_seq, decoder_input_seq, decoder_output_seq):
+        '''
+
+        :param encoder_input_seq:
+        :param decoder_input_seq:
+        :param decoder_output_seq:
+        :return:
+        '''
 
         max_encoder_input_seq_len = max(len(s) for s in encoder_input_seq)
         padded_encoder_input_seq = pad_sequences(encoder_input_seq, maxlen=max_encoder_input_seq_len,
@@ -97,16 +105,36 @@ class DataPreprocessing(MustHaveForDP):
         return padded_encoder_input_seq, padded_decoder_input_seq, padded_decoder_output_seq
 
 
+    def create_embedding_matrix(self, enocder_input_tokenizer):
+        '''
 
-
-
-        return
-
-
-        return
-    def create_embedding_matrix(self):
+        :param enocder_input_tokenizer:
+        :return:
+        '''
         # creatng embedding matrix
-        return
+        word_vector_dict = {}
+        word2idx = enocder_input_tokenizer.word_index
+        embedding_matrix = np.zeros(shape=(len(word2idx), config.EMBEDDING_DIM), dtype='float32')
+
+        # first we need to load the pretrained embedding file and create a word_vector_dict
+        with open(config.PRETRAINED_EMBEDDINGS) as file_handle:
+            for line in file_handle.split():
+                try:
+                    word = line[0]
+                    vector = np.asarray(line[1:], dtype='float32')
+                    word_vector_dict[word] = vector
+                except ValueError:
+                    continue
+
+        # now that we have the word vector dict
+        # we can create an embedding matrix for the words that exists in our dataset
+        for word, index in word2idx:
+            word_vector = word_vector_dict.get(word)
+            if word_vector is not None:
+                embedding_matrix[index] = word_vector
+
+
+        return embedding_matrix, word_vector_dict
 
 
 class DumpLoadFile:
@@ -131,6 +159,3 @@ class DumpLoadFile:
         with open(filename, 'rb') as pickle_handle:
             return pickle.load(pickle_handle)
 
-
-dp_obj  = DataPreprocessing()
-dp_obj.cleaning_data(config.RAW_DATASET)
