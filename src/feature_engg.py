@@ -31,11 +31,52 @@ class MustHaveForDP:
 class DataPreprocessing(MustHaveForDP):
 
     def cleaning_data(self, dataset_path):
-        # tokenize the text here
+        '''
 
-        # create input and output sequences
+        :param dataset_path:
+        :return:
+        '''
 
-        return
+        # loading raw data here
+        sample_id = 0
+        input_text_encoder_list = []
+        input_text_decoder_list = []
+        output_text_decoder_list = []
+        for line in open(dataset_path):
+
+            sample_id += 1
+            if sample_id > config.MAX_SAMPLES:
+                break
+
+            if config.SEQUENCE_DELIMITER not in line:
+                sample_id -= 1
+                # deducting the sample id that has been added above
+                continue
+
+            input_line, translated_line, *not_nedded = line.split(config.SEQUENCE_DELIMITER)
+
+            # since we are implementing the seq2seq architecture
+            # we will need 2 models, 1st model will be trained by teacher forcing methode
+            # in the second model we will use the layers trained from the first model
+            input_text = '<sos> ' + input_line
+            input_text_decoder = '<sos> ' + translated_line
+            output_text_decoder = translated_line + ' <eos>'
+
+            input_text_encoder_list.append(input_text)
+            input_text_decoder_list.append(input_text_decoder)
+            output_text_decoder_list.append(output_text_decoder)
+
+        # tokenize the input data
+        input_tokenizer = Tokenizer(num_words=config.MAX_VOCAB_SIZE, filters='')
+        input_tokenizer.fit_on_texts(input_text_encoder_list)
+        input_seq_encoder = input_tokenizer.texts_to_sequences(input_text_encoder_list)
+
+        # tokenize the translated data
+        translation_tokenizer = Tokenizer(num_words=config.MAX_VOCAB_SIZE, filters='')
+        translation_tokenizer.fit_on_texts(input_text_decoder_list + output_text_decoder_list)
+        input_seq_decoder = translation_tokenizer.texts_to_sequences(input_text_decoder_list)
+
+        return input_seq_encoder, input_seq_decoder, input_tokenizer, translation_tokenizer
 
 
     def create_embedding_matrix(self):
@@ -66,3 +107,5 @@ class DumpLoadFile:
             return pickle.load(pickle_handle)
 
 
+dp_obj  = DataPreprocessing()
+dp_obj.cleaning_data(config.RAW_DATASET)
