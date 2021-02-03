@@ -79,6 +79,31 @@ class DataPreprocessing(MustHaveForDP):
         return input_seq_encoder, input_seq_decoder, input_tokenizer, translation_tokenizer
 
 
+    # this function will help in creating fixed length sequences
+    # we will apply padding
+    def get_fixed_length_sequences(self, encoder_input_seq, decoder_input_seq, decoder_output_seq):
+
+        max_encoder_input_seq_len = max(len(s) for s in encoder_input_seq)
+        padded_encoder_input_seq = pad_sequences(encoder_input_seq, maxlen=max_encoder_input_seq_len,
+                                                 padding='pre')
+
+        max_decoder_input_seq_len = max(len(s) for s in decoder_input_seq)
+        padded_decoder_input_seq = pad_sequences(decoder_input_seq, maxlen=max_decoder_input_seq_len,
+                                                 padding='post')
+
+        padded_decoder_output_seq = pad_sequences(decoder_output_seq, maxlen=max_decoder_input_seq_len,
+                                                  padding='post')
+
+        return padded_encoder_input_seq, padded_decoder_input_seq, padded_decoder_output_seq
+
+
+
+
+
+        return
+
+
+        return
     def create_embedding_matrix(self):
         # creatng embedding matrix
         return
