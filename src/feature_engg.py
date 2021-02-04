@@ -59,11 +59,11 @@ class DataPreprocessing(MustHaveForDP):
             # since we are implementing the seq2seq architecture
             # we will need 2 models, 1st model will be trained by teacher forcing methode
             # in the second model we will use the layers trained from the first model
-            input_text = '<sos> ' + input_line
+            # input_text = '<sos> ' + input_line
             input_text_decoder = '<sos> ' + translated_line
             output_text_decoder = translated_line + ' <eos>'
 
-            input_text_encoder_list.append(input_text)
+            input_text_encoder_list.append(input_line)
             input_text_decoder_list.append(input_text_decoder)
             output_text_decoder_list.append(output_text_decoder)
 
@@ -76,8 +76,10 @@ class DataPreprocessing(MustHaveForDP):
         translation_tokenizer = Tokenizer(num_words=config.MAX_VOCAB_SIZE, filters='')
         translation_tokenizer.fit_on_texts(input_text_decoder_list + output_text_decoder_list)
         input_seq_decoder = translation_tokenizer.texts_to_sequences(input_text_decoder_list)
+        output_seq_decoder = translation_tokenizer.texts_to_sequences(output_text_decoder_list)
 
-        return input_seq_encoder, input_seq_decoder, input_tokenizer, translation_tokenizer
+        return input_seq_encoder, input_seq_decoder, output_seq_decoder,\
+               input_tokenizer, translation_tokenizer
 
 
     # this function will help in creating fixed length sequences
@@ -92,17 +94,22 @@ class DataPreprocessing(MustHaveForDP):
         '''
 
         max_encoder_input_seq_len = max(len(s) for s in encoder_input_seq)
-        padded_encoder_input_seq = pad_sequences(encoder_input_seq, maxlen=max_encoder_input_seq_len,
+        padded_encoder_input_seq = pad_sequences(encoder_input_seq,
+                                                 maxlen=max_encoder_input_seq_len,
                                                  padding='pre')
 
         max_decoder_input_seq_len = max(len(s) for s in decoder_input_seq)
-        padded_decoder_input_seq = pad_sequences(decoder_input_seq, maxlen=max_decoder_input_seq_len,
+        padded_decoder_input_seq = pad_sequences(decoder_input_seq,
+                                                 maxlen=max_decoder_input_seq_len,
                                                  padding='post')
 
-        padded_decoder_output_seq = pad_sequences(decoder_output_seq, maxlen=max_decoder_input_seq_len,
+        padded_decoder_output_seq = pad_sequences(decoder_output_seq,
+                                                  maxlen=max_decoder_input_seq_len,
                                                   padding='post')
 
-        return padded_encoder_input_seq, padded_decoder_input_seq, padded_decoder_output_seq
+        return padded_encoder_input_seq, padded_decoder_input_seq,\
+               padded_decoder_output_seq, max_encoder_input_seq_len,\
+               max_decoder_input_seq_len
 
 
     def create_embedding_matrix(self, enocder_input_tokenizer):
