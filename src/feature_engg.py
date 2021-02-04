@@ -78,8 +78,14 @@ class DataPreprocessing(MustHaveForDP):
         input_seq_decoder = translation_tokenizer.texts_to_sequences(input_text_decoder_list)
         output_seq_decoder = translation_tokenizer.texts_to_sequences(output_text_decoder_list)
 
+        actual_vocab_size_input = min(config.MAX_VOCAB_SIZE,
+                                      len(input_tokenizer.word_index)+1)
+        actual_vocab_size_translation = min(config.MAX_VOCAB_SIZE,
+                                            len(translation_tokenizer.word_index)+1)
+
         return input_seq_encoder, input_seq_decoder, output_seq_decoder,\
-               input_tokenizer, translation_tokenizer
+               input_tokenizer, translation_tokenizer, actual_vocab_size_input,\
+               actual_vocab_size_translation
 
 
     # this function will help in creating fixed length sequences
@@ -112,7 +118,7 @@ class DataPreprocessing(MustHaveForDP):
                max_decoder_input_seq_len
 
 
-    def create_embedding_matrix(self, enocder_input_tokenizer):
+    def create_embedding_matrix(self, encoder_input_tokenizer):
         '''
 
         :param enocder_input_tokenizer:
@@ -120,22 +126,23 @@ class DataPreprocessing(MustHaveForDP):
         '''
         # creatng embedding matrix
         word_vector_dict = {}
-        word2idx = enocder_input_tokenizer.word_index
-        embedding_matrix = np.zeros(shape=(len(word2idx), config.EMBEDDING_DIM), dtype='float32')
+        word2idx = encoder_input_tokenizer.word_index
+        embedding_matrix = np.zeros(shape=(len(word2idx)+1, config.EMBEDDING_DIM), dtype='float32')
 
         # first we need to load the pretrained embedding file and create a word_vector_dict
         with open(config.PRETRAINED_EMBEDDINGS) as file_handle:
-            for line in file_handle.split():
-                try:
-                    word = line[0]
-                    vector = np.asarray(line[1:], dtype='float32')
-                    word_vector_dict[word] = vector
-                except ValueError:
-                    continue
+            for line in file_handle:
+                for values in line.split():
+                    try:
+                        word = values[0]
+                        vector = np.asarray(values[1:], dtype='float32')
+                        word_vector_dict[word] = vector
+                    except ValueError:
+                        continue
 
         # now that we have the word vector dict
         # we can create an embedding matrix for the words that exists in our dataset
-        for word, index in word2idx:
+        for word, index in word2idx.items():
             word_vector = word_vector_dict.get(word)
             if word_vector is not None:
                 embedding_matrix[index] = word_vector
