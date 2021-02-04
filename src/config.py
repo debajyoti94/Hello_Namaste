@@ -18,6 +18,9 @@ MAX_SEQUENCE_LENGTH = 100
 BATCH_SIZE = 128
 LR = 0.01
 NUM_EPOCHS = 100
+LSTM_HIDDEN_VECTORS = 100
+LOSS_FN = 'categorical_crossentropy'
+VALIDATION_SPLIT = 0.2
 
 
 # filenames which will be used for storing
