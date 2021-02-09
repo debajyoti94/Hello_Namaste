@@ -73,7 +73,7 @@ class TranslationModel:
                          loss=config.LOSS_FN,
                          metrics=['accuracy'])
 
-        early_stop = EarlyStopping(monitor='val_loss', mode='min', patience=10)
+        early_stop = EarlyStopping(monitor='val_loss', mode='min', patience=20)
 
         r = tf_model.fit([padded_encoder_input_seq,
                           padded_decoder_input_seq],
@@ -129,8 +129,39 @@ class TranslationModel:
 
         return tf_model, inf_encoder_model, inf_decoder_model
 
-    def get_translation(self):
+    def get_translation(self, input_seq, translation_tokenizer,
+                        enocder_model, decoder_model):
 
-        return
+        encoder_output = enocder_model.predict(input_seq)
+
+        # create a target seq array of 1x1
+        target_seq = np.zeros(shape=(1,1))
+
+        # start of decoder input seq is <sos>
+        target_seq[0][0] = translation_tokenizer.word_index['<sos>']
+
+        eos_id = translation_tokenizer.word_index['<eos>']
+
+        translated_sentence = []
+        for _ in range(100):
+            o, h, c = decoder_model.predict(
+                [target_seq] + encoder_output
+            )
+
+            # get the next word
+            next_word_idx = np.argmax(o[0,0,:])
+
+            if eos_id == next_word_idx:
+                break
+
+            next_word = translation_tokenizer.index_word[next_word_idx]
+            translated_sentence.append(next_word)
+
+            target_seq[0][0] = next_word_idx
+
+            encoder_output = [h, c]
+
+        return ' '.join(translated_sentence)
+
 
 
