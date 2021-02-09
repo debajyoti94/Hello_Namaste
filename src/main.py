@@ -9,6 +9,10 @@ import feature_engg
 
 import argparse
 
+from keras.layers import Input,LSTM,Embedding,Dense
+from keras.models import Model
+from keras.preprocessing.sequence import pad_sequences
+
 
 if __name__ == '__main__':
 
@@ -50,7 +54,9 @@ if __name__ == '__main__':
         padded_decoder_input_seq, \
         padded_decoder_output_seq,\
         max_encoder_input_seq_len, \
-        max_decoder_input_seq_len= fr_obj.get_fixed_length_sequences(input_seq_encoder, input_seq_decoder, output_seq_decoder)
+        max_decoder_input_seq_len= fr_obj.get_fixed_length_sequences(input_seq_encoder,
+                                                                     input_seq_decoder,
+                                                                     output_seq_decoder)
 
         # getting the embedding matrix
         print('Creating the embedding matrix ...')
@@ -104,8 +110,82 @@ if __name__ == '__main__':
         inf_decoder_model.save_weights(config.INFERENCE_DECODER_MODEL)
 
     elif args.test == 'translation':
+
         # in order to use the models that we have saved through training
         # we need to recreate these models and then load the weights
+        max_input_seq_encoder_len = dl_obj.load_file(config.MAX_ENCODER_INPUT_SEQ_LEN)[0]
+        actual_vocab_size_input_encoder = dl_obj.load_file(config.ACTUAL_VOCAB_SIZE_INPUT)[0]
+        actual_vocab_size_input_decoder = dl_obj.load_file(config.ACTUAL_VOCAB_SIZE_TRANSLATION)[0]
+        embedding_matrix = dl_obj.load_file(config.EMBEDDING_MATRIX)[0]
+        input_tokenizer = dl_obj.load_file(config.INPUT_TOKENIZER)[0]
+        translation_tokenizer = dl_obj.load_file(config.TRANSLATION_TOKENIZER)[0]
+        max_encoder_input_seq_len = dl_obj.load_file(config.MAX_ENCODER_INPUT_SEQ_LEN)[0]
+
+        # in order to use the load weights
+        # we need to re-create the encoder decoder architecture
+
+        # creating the encoder architecture
+        embedding_layer = Embedding(actual_vocab_size_input_encoder,
+                                    config.EMBEDDING_DIM,
+                                    weights=[embedding_matrix],
+                                    input_length=max_input_seq_encoder_len)
+
+        encoder_input_layer = Input(shape=(max_input_seq_encoder_len,))
+        x = embedding_layer(encoder_input_layer)
+        encoder_lstm = LSTM(config.LSTM_HIDDEN_VECTORS, return_state=True)
+        encoder_outputs, h, c = encoder_lstm(x)
+
+        final_encoder_states = [h, c]
+        inf_encoder_model = Model(encoder_input_layer, final_encoder_states)
+
+        inf_encoder_model.load_weights(config.INFERENCE_ENCODER_MODEL)
+
+        ########
+        ########
+        # load decoder model here
+        inf_decoder_input_h = Input(shape=(config.LSTM_HIDDEN_VECTORS,))
+        inf_decoder_input_c = Input(shape=(config.LSTM_HIDDEN_VECTORS,))
+        inf_decoder_states_input = [inf_decoder_input_h, inf_decoder_input_c]
+
+        # giving one word as input
+        inf_decoder_word_input = Input(shape=(1,))
+        decoder_embedding_layer = Embedding(actual_vocab_size_input_decoder,
+                                            config.EMBEDDING_DIM)
+        inf_x = decoder_embedding_layer(inf_decoder_word_input)
+        decoder_lstm = LSTM(units=config.LSTM_HIDDEN_VECTORS,
+                            return_state=True,
+                            return_sequences=True)
+
+        inf_decoder_o, inf_decoder_h, inf_decoder_c = decoder_lstm(inf_x,
+                                                                   initial_state=inf_decoder_states_input)
+
+        inf_decoder_states = [inf_decoder_h, inf_decoder_c]
+        decoder_dense_layer = Dense(actual_vocab_size_input_decoder,
+                                    activation='softmax')
+
+        inf_decoder_o = decoder_dense_layer(inf_decoder_o)
+
+        inf_decoder_model = Model([inf_decoder_word_input] + inf_decoder_states_input,
+                                  [inf_decoder_o] + inf_decoder_states)
+
+        # loaded the weights of the trained decoder
+        inf_decoder_model.load_weights(config.INFERENCE_DECODER_MODEL)
 
         # get hindi translation here
-        pass
+        # we will provide a raw text here
+        # first we need to tokenize it
+        # then pass that sequence as an input to the encoder
+        raw_input_list = ['Hello!!']
+        input_seq = input_tokenizer.texts_to_sequences(raw_input_list)
+        # also have to pad the sequences
+        padded_encoder_input_seq = pad_sequences(input_seq,
+                                                 maxlen=max_encoder_input_seq_len,
+                                                 padding='pre')
+
+        tm_obj = model.TranslationModel()
+        translated_sentence = tm_obj.get_translation(padded_encoder_input_seq,
+                               translation_tokenizer,
+                               inf_encoder_model,
+                               inf_decoder_model)
+
+        print("Input sentence:\n{}\nTranslated version:{}".format(raw_input_list[0], translated_sentence))
