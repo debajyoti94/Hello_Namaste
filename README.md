@@ -7,7 +7,7 @@ Using the English-Hindi dataset.
 ### Architecture of the model: Sequence to Sequence (Seq2Seq) model with an encoder and decoder architecture.
 In an encoder-decoder architecture, the encoder is responsible for taking the input and folding it up to a single thought vector. The decoder then takes this thought vector and produces an output in the desired format. We use LSTM (Long Short Term Memory) network for building this Sequence to Sequence model.
 
-----Add architecture image below----
+![lstm_whiteboard.jpg](https://github.com/debajyoti94/Hello_Namaste/blob/main/for_readme/lstm_whiteboard.jpg)
 
 ### Implementation details for building a Seq2Seq model:
 
