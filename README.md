@@ -26,6 +26,8 @@ In an encoder-decoder architecture, the encoder is responsible for taking the in
 
 * As you can infer now, we need two different decoders, one during training and one during inference. This is why we create two different models. The first model is for training purpose and the second model will be used for sampling and using the decoded layers of the trained model. 
 
+* While training the decoder, we need to pass a start of sentence <sos> token and an end of sentence token <eos> for the model to understand when to start and when to stop. During inference stage, we pass the decoder, the hidden states of the encoder and the <sos> token as input. The decoder stops predicting, when the token it has predicted is <eos>, indicating that it is the end of sentence.
+
 
 ### About the dataset:
 
